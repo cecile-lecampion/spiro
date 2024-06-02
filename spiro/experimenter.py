@@ -13,9 +13,10 @@ from statistics import mean
 from collections import deque
 from spiro.config import Config
 from spiro.logger import log, debug
+from spiro.hwcontrol import HWControl
 
 class Experimenter(threading.Thread):
-    def __init__(self, hw=None, cam=None):
+    def __init__(self, hw: HWControl, cam=None):
         self.hw = hw
         self.cam = cam
         self.cfg = Config()
@@ -35,7 +36,7 @@ class Experimenter(threading.Thread):
         self.preview = [''] * 4
         self.preview_lock = threading.Lock()
         self.nshots = 0
-        self.idlepos = 0
+        self.idlepos = 0   # Ajouter un commentaire (en anglais) à quoi correspond cette positiopn de repos
         threading.Thread.__init__(self)
 
 
@@ -203,7 +204,8 @@ class Experimenter(threading.Thread):
                     else:
                         # rotate cube 90 degrees
                         debug("Rotating stage.")
-                        self.hw.halfStep(100, 0.03)
+                        # self.hw.halfStep(100, 0.03)
+                        self.hw.rotate(degrees=90)
 
                     # wait for the cube to stabilize
                     time.sleep(0.5)
@@ -218,10 +220,14 @@ class Experimenter(threading.Thread):
 
                 if self.idlepos > 0:
                     # alternate between resting positions during idle, stepping 45 degrees per image
-                    self.hw.motorOn(True)
-                    self.hw.halfStep(50 * self.idlepos, 0.03)
-                    self.hw.motorOn(False)
+                    # self.hw.motorOn(True)
+                    self.hw.startMotor()
+                    # self.hw._halfStep(50 * self.idlepos, 0.03)
+                    self.hw.rotate(degrees=(45 * self.idlepos))
+                    # self.hw.motorOn(False)
+                    self.hw.stopMotor()
 
+                # Ajouter un commentaire (en anglais)
                 self.idlepos += 1
                 if self.idlepos > 7:
                     self.idlepos = 0

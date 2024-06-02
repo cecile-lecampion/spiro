@@ -57,13 +57,13 @@ class HWControl:
         # make sure that switch is not depressed when starting
         if gpio.input(self.pins['sensor']):
             while gpio.input(self.pins['sensor']) and time.time() < starttime + timeout:
-                self.halfStep(1, 0.03)
+                self._halfStep(1, 0.03)
 
         while not gpio.input(self.pins['sensor']) and time.time() < starttime + timeout:
-            self.halfStep(1, 0.03)
+            self._halfStep(1, 0.03)
 
         if time.time() < starttime + timeout:
-            self.halfStep(calibration, 0.03)
+            self._halfStep(calibration, 0.03)
         else:
             log("Timed out while finding start position! Images will be misaligned.")
 
@@ -78,7 +78,7 @@ class HWControl:
 
     # steps the stepper motor using half steps, "delay" is time between coil change
     # 400 steps is 360 degrees
-    def halfStep(self, steps, delay, keep_motor_on=False):
+    def _halfStep(self, steps: int, delay=0.03, keep_motor_on=False):
         time.sleep(0.005) # time for motor to activate
         for i in range(0, steps):
             self.setStepper(self.halfstep_seq, self.seqNumb)
@@ -87,11 +87,24 @@ class HWControl:
                 self.seqNumb = 0
             time.sleep(delay)
 
+    def rotate(self, degrees: int):
+        factor = 400 / 360
+        steps = degrees * factor
+        integralSteps = int(steps)
+        # if steps is not an integer
+        if integralSteps != steps:
+            raise ValueError(f"conversion from degrees to motor steps must end up to an integral value ({degrees} degrees = {steps} steps)")
+        self._halfStep(integralSteps)
 
     # sets motor standby status
-    def motorOn(self, value):
+    def _motorOn(self, value):
         gpio.output(self.pins['stdby'], value)
 
+    def startMotor(self):
+        self._motorOn(True)
+
+    def stopMotor(self):
+        self._motorOn(False)
 
     # turns on and off led
     def LEDControl(self, value):
